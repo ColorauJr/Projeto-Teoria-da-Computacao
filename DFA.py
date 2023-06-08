@@ -1,15 +1,19 @@
-class DFA:
+import networkx as nx
+import matplotlib.pyplot as plt
 
-    def _init_(self, states, alphabet, transitions, initial_state,
-               accepting_states):
-        self.alphabet = alphabet
+
+class DFA:
+            
+    def __init__(self, alphabet, states, initial_state, accepting_states,
+               transitions): # Construtor da classe DFA
+        self.alphabet = alphabet 
         self.states = states
         self.initial_state = initial_state
         self.accepting_states = accepting_states
         self.transitions = transitions
   
-    def minimize(self):
-        # Step 1: Initialize the table with all pairs of states (Qi, Qj) where i < j
+    def minimize(self):# Função que minimiza o DFA
+        # passo 1: criar a tabela de pares de estados não marcados e marcar todos os pares (Qi, Qj) onde Qi e Qj são estados finais ou não finais
         table = {}
         for i, s1 in enumerate(self.states):
             for s2 in self.states[i+1:]:
@@ -89,10 +93,26 @@ class DFA:
                 transitions[symbol] = next_state_set
 
             minimized_transitions[new_state] = transitions
-           
+
         return DFA(
                self.alphabet,
                minimized_states,
                minimized_initial_state,
                minimized_accepting_states,
                minimized_transitions,)
+        
+    def visualize(dfa): # Função que visualiza o DFA minimizado em um grafo direcionado
+        # criar o grafo direcionado
+        G = nx.DiGraph()
+        for state in dfa.states:
+            for symbol in dfa.alphabet:
+                G.add_edge(state, dfa.transitions[state][symbol], label=symbol)
+
+        # Definir o layout do grafo e desenhá-lo com as labels das transições
+        pos = nx.spring_layout(G)
+        nx.draw(G, pos, with_labels=True)
+        edge_labels = nx.get_edge_attributes(G, 'label')
+        nx.draw_networkx_edge_labels(G, pos, edge_labels=edge_labels)
+
+        # Show the plot
+        plt.show() 

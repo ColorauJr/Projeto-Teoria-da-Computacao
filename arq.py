@@ -1,6 +1,5 @@
-
 from DFA import DFA
-# from DFA import minimize
+import time
 
 with open('Arquivo Automato.txt', 'r') as arquivo:
     totalLinhas = arquivo.readlines()
@@ -49,7 +48,7 @@ def lerFinais():
         n = n + 3
         c = c + 1
 
-#a função lerá da quinta linha em diante, pois são as linhas relativas às transições
+#a função lerá da sexta linha em diante, pois são as linhas relativas às transições
 def lerTransicoes():
     for i in range(5, len(totalLinhas)):
         transicoes.append(totalLinhas[i])
@@ -111,8 +110,9 @@ def verificarTransicoes():
                 if alfabeto[j] == verificadorTransicao[k]:
                     count = count + 1
 
-            #se o número de transições de estrados[i] para cada caractere for diferente de 1, o autômato é invalidado
+            #se o número de transições de estados[i] para cada caractere for diferente de 1, o autômato é invalidado
             if count != 1:
+                print(count)
                 print("Automato invalido: " + estados[i] + " possui um numero incorreto de transicoes pra um caractere do alfabeto.")
                 exit()
 
@@ -121,6 +121,15 @@ def verificarTransicoes():
 
     #Tem que fazer a passagem aqui para o DFA depois de verificar tudo tou me comunicando com você
     #passar para o DFA
+
+def converterTransicoes(transicoes):
+    transitions = {}
+    for transicao in transicoes:
+        estado1, estado2, simbolo = transicao.strip().split(',')
+        if estado1 not in transitions:
+            transitions[estado1] = {}
+        transitions[estado1][simbolo] = estado2
+    return transitions
 
 
 def printarInfo(): #função para printar as informações do DFA
@@ -150,9 +159,10 @@ lerFinais() #função que lê os estados finais e os armazena na lista finais[]
 verificarInicialFinal() #função que verifica se o estado inicial e os estados finais são válidos
 
 transicoes = [] #lista que armazena as transições
-lerTransicoes() 
+lerTransicoes()
 verificarTransicoes() #função que verifica se as transições são válidas
+transicoesFormatadas = converterTransicoes(transicoes)
 
-dfa = DFA(alfabeto, estados, inicial, finais, transicoes) #criar o DFA estanciado
-dfa = DFA.minimize() #minimizar o DFA show
+dfa = DFA(alfabeto, estados, inicial, finais, transicoesFormatadas) #criar o DFA estanciado
+dfa = dfa.minimize() #minimizar o DFA
 printarInfo() #printar as informações do DFA
