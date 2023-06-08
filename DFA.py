@@ -1,119 +1,98 @@
-
 class DFA:
-    def __init__(self, states, alphabet, transitions, initial_state, accepting_states):
-        self.states = states
+
+    def _init_(self, states, alphabet, transitions, initial_state,
+               accepting_states):
         self.alphabet = alphabet
-        self.transitions = transitions
+        self.states = states
         self.initial_state = initial_state
         self.accepting_states = accepting_states
-
-    def map_states_to_integers(self):
-        state_mapping = {}
-        next_integer = 0
-        for state in self.states:
-            state_mapping[state] = next_integer
-            next_integer += 1
-        return state_mapping                        
-    
-    def convert_to_integers(self, state_mapping):
-        transitions_int = {}
-        for state, transition in self.transitions.items():
-            state_int = state_mapping[state]
-            transition_int = {}
-            for symbol, next_state in transition.items():
-                next_state_int = state_mapping[next_state]
-                transition_int[symbol] = next_state_int
-            transitions_int[state_int] = transition_int
-        return transitions_int
-
-    def convert_to_strings(self, state_mapping):
-        transitions_str = {}
-        for state_int, transition in self.transitions.items():
-            state_str = state_mapping[state_int]
-            transition_str = {}
-            for symbol, next_state_int in transition.items():
-                next_state_str = state_mapping[next_state_int]
-                transition_str[symbol] = next_state_str
-            transitions_str[state_str] = transition_str
-        return transitions_str
-
-    def is_equivalent(self, p, q, partition):
-        for symbol in self.alphabet:
-            next_p = self.transitions[p][symbol]
-            next_q = self.transitions[q][symbol]
-            if partition[int(next_p)] != partition[int(next_q)]:
-                return False
-        return True
-
+        self.transitions = transitions
+  
     def minimize(self):
-        state_mapping = self.map_states_to_integers()
-        transitions_int = self.convert_to_integers(state_mapping)
+        # Step 1: Initialize the table with all pairs of states (Qi, Qj) where i < j
+        table = {}
+        for i, s1 in enumerate(self.states):
+            for s2 in self.states[i+1:]:
+                table[(s1, s2)] = False
 
-        # Step 1: Initialize the partition with two groups: accepting and non-accepting states
-        partition = [{s for s in self.states if s in self.accepting_states},
-                     {s for s in self.states if s not in self.accepting_states}]
+        # Step 2: Mark all pairs (Qi, Qj) where Qi is an accepting state and Qj is not an accepting state
+        for s1 in self.accepting_states:
+            for s2 in set(self.states) - set(self.accepting_states):
+                table[(s1, s2)] = True
+                table[(s2, s1)] = True
 
-        # Step 2: Refine the partition until no further changes occur
+        # Step 3: Repeat until no further changes occur
         refined = True
         while refined:
             refined = False
-            new_partition = []
 
-            for group in partition:
-                split = False
-                for p in group:
-                    for q in group:
-                        if p != q and self.is_equivalent(p, q, partition):
-                            split = True
-                            break
-                    if split:
-                        break
+            # Step 3a: Iterate over all pairs (Qi, Qj) where i < j and table[(Qi, Qj)] == False
+            for s1 in self.states:
+                for s2 in self.states:
+                    if s1 < s2 and not table[(s1, s2)]:
+                        # Step 3b: Iterate over all symbols in the alphabet
+                        for symbol in self.alphabet:
+                            next_s1 = self.transitions[s1][symbol]
+                            next_s2 = self.transitions[s2][symbol]
 
-                if split:
-                    refined = True
-                    new_groups = [set([p]), set([q])]
-                    for r in group:
-                        if r != p and r != q:
-                            for i, new_group in enumerate(new_groups):
-                                if self.is_equivalent(r, list(new_group)[0], partition):
-                                    new_group.add(r)
-                                    break
-                            else:
-                                new_groups.append(set([r]))
-                    new_partition.extend(new_groups)
-                else:
-                    new_partition.append(group)
+                            # Step 3c: If (next_s1, next_s2) is marked or not in the table, mark (Qi, Qj)
+                            if (next_s1, next_s2) in table and table[(next_s1, next_s2)]:
+                                table[(s1, s2)] = True
+                                table[(s2, s1)] = True
+                            elif (next_s2, next_s1) in table and table[(next_s2, next_s1)]:
+                                    table[(s1, s2)] = True
+                                    table[(s2, s1)] = True
 
-            partition = new_partition
-
-        # Step 3: Construct the minimized DFA
+        # Step 4: Construct the minimized DFA
         minimized_states = []
         minimized_transitions = {}
         minimized_initial_state = None
-        minimized_accepting_states = []
+        minimized_accepting_states = set()
 
-        for group in partition:
-            representative = list(group)[0]
-            minimized_states.append(representative)
-            minimized_transitions[state_mapping[representative]] = {}
+        # Step 4a: Create a new state for each equivalence class
+        equivalence_classes = {}
+        for state in self.states:
+            equivalence_class = None
+            for key in equivalence_classes.keys():
+                if (state, key) not in table and (key, state) not in table:
+                    equivalence_class = key
+                    break
 
+            if equivalence_class is None:
+                equivalence_class = state
+
+            equivalence_classes[equivalence_class] = equivalence_classes.get(equivalence_class, set()) | {state}
+
+        # Step 4b: Add the new states to the minimized DFA
+        for state_set in equivalence_classes.values():
+            new_state = tuple(sorted(list(state_set)))
+            minimized_states.append(new_state)
+
+            if self.initial_state in state_set:
+                minimized_initial_state = new_state
+
+            if len(state_set & set(self.accepting_states)) > 0:
+                minimized_accepting_states.add(new_state)
+
+            transitions = {}
             for symbol in self.alphabet:
-                next_state = self.transitions[representative][symbol]
+                next_states = set()
+                for state in state_set:
+                    next_state = self.transitions[state][symbol]
+                    next_states.add(next_state)
 
-                for i, subgroup in enumerate(partition):
-                    if next_state in subgroup:
-                        minimized_transitions[state_mapping[representative]][symbol] = state_mapping[next_state]
-                        break
+                next_state_set = None
+                for key, value in equivalence_classes.items():
+                    if value == next_states:
+                        next_state_set = key
 
-            if self.initial_state in group:
-                minimized_initial_state = state_mapping[representative]
+                transitions[symbol] = next_state_set
 
-            if any(state in self.accepting_states for state in group):
-                minimized_accepting_states.append(state_mapping[representative])
-
-        minimized_states_str = self.convert_to_strings(state_mapping)
-        minimized_dfa = DFA(minimized_states, self.alphabet, minimized_transitions,
-                            minimized_initial_state, minimized_accepting_states)
-
-        return minimized_dfa
-    
+            minimized_transitions[new_state] = transitions
+           
+        return DFA(
+               self.alphabet,
+               minimized_states,
+               minimized_initial_state,
+               minimized_accepting_states,
+               minimized_transitions,)
