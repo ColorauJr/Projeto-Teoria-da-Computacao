@@ -1,3 +1,5 @@
+from DFA import DFA
+
 with open('Arquivo Automato.txt', 'r') as arquivo:
     totalLinhas = arquivo.readlines()
     
@@ -45,7 +47,7 @@ def lerFinais():
         n = n + 3
         c = c + 1
 
-#a função lerá da quinta linha em diante, pois são as linhas relativas às transições
+#a função lerá da sexta linha em diante, pois são as linhas relativas às transições
 def lerTransicoes():
     for i in range(5, len(totalLinhas)):
         transicoes.append(totalLinhas[i])
@@ -92,7 +94,7 @@ def verificarTransicoes():
             transicaoAtual = transicoes[j]
             if estados[i] == (transicaoAtual[0]+transicaoAtual[1]):
                 verificadorTransicao.append(transicaoAtual[len(transicaoAtual)-2])
-        
+
         #se os números não batem, quer dizer que a quantidade de transições do estado "estados[i]" é incorreta, invalidando o autômato
         if len(verificadorTransicao) != len(alfabeto):
             print("Automato invalido: quantidade de transicoes para o estado " + estados[i] + " incorreta.")
@@ -107,7 +109,7 @@ def verificarTransicoes():
                 if alfabeto[j] == verificadorTransicao[k]:
                     count = count + 1
 
-            #se o número de transições de estrados[i] para cada caractere for diferente de 1, o autômato é invalidado
+            #se o número de transições de estados[i] para cada caractere for diferente de 1, o autômato é invalidado
             if count != 1:
                 print("Automato invalido: " + estados[i] + " possui um numero incorreto de transicoes pra um caractere do alfabeto.")
                 exit()
@@ -115,45 +117,50 @@ def verificarTransicoes():
     #Se o autômato passar por todas as verificações, ele é dado como válido
     print("Automato valido.")
 
+    #Tem que fazer a passagem aqui para o DFA depois de verificar tudo tou me comunicando com você
+    #passar para o DFA
 
-def printarInfo():
-    print("--------")
-    for i in range(0, len(alfabeto)):
-        print(alfabeto[i])
-    print("--------")
-    for i in range(0, len(estados)):
-        print(estados[i])
-    print("--------")
-    print(inicial)
-    print("--------")
-    for i in range(0, len(finais)):
-        print(finais[i])
-    print("--------")
-    print(len(transicoes))
-    print("--------")
-    for i in range(0, len(transicoes)):
-        print(transicoes[i])
-    print("--------")
+def converterTransicoes(transicoes):
+    transitions = {}
+    for transicao in transicoes:
+        estado1, estado2, simbolo = transicao.strip().split(',')
+        if estado1 not in transitions:
+            transitions[estado1] = {}
+        transitions[estado1][simbolo] = estado2
+    return transitions
 
 
+def printarInfo(): #função para printar as informações do DFA
+    print("Minimized DFA:")
+    print("States:", dfa.states) 
+    print("Alphabet:",dfa.alphabet) 
+    print("Transitions:", dfa.transitions)
+    print("Initial State:", dfa.initial_state)
+    print("Accepting States:", dfa.accepting_states)
 
-alfabeto = []
-linha = lerLinha(0)
-lerAlfabeto()
 
-estados = []
-linha = lerLinha(1)
-lerEstados()
 
-inicial = lerInicial()
 
-finais = []
-linha = lerLinha(3)
-lerFinais()
-verificarInicialFinal()
+alfabeto = [] #lista que armazena o alfabeto
+linha = lerLinha(0) #função que lê a primeira linha do arquivo e a armazena na lista linha[]
+lerAlfabeto() #função que lê o alfabeto e o armazena na lista alfabeto[]
 
-transicoes = []
+estados = [] #lista que armazena os estados
+linha = lerLinha(1) #função que lê a segunda linha do arquivo e a armazena na lista linha[]
+lerEstados() #função que lê os estados e os armazena na lista estados[]
+
+inicial = lerInicial() #função que lê o estado inicial e o armazena na variável inicial
+
+finais = [] #lista que armazena os estados finais
+linha = lerLinha(3) #função que lê a quarta linha do arquivo e a armazena na lista linha[]
+lerFinais() #função que lê os estados finais e os armazena na lista finais[]
+verificarInicialFinal() #função que verifica se o estado inicial e os estados finais são válidos
+
+transicoes = [] #lista que armazena as transições
 lerTransicoes()
-verificarTransicoes()
+verificarTransicoes() #função que verifica se as transições são válidas
+transicoesFormatadas = converterTransicoes(transicoes)
 
-printarInfo()
+dfa = DFA(alfabeto, estados, inicial, finais, transicoesFormatadas) #criar o DFA estanciado
+dfa = dfa.minimize() #minimizar o DFA
+printarInfo() #printar as informações do DFA
